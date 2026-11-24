@@ -1,6 +1,6 @@
-// 版本：PWA外殼_20261124_2154
+// 版本：PWA外殼_20261124_2234
 // 只快取外殼本身（畫面、圖示），讓沒網路時也能打開並顯示提示；庫存資料一律即時向 GAS 取得，不快取
-var CACHE = 'smeria-20261124-2154';
+var CACHE = 'smeria-20261124-2234';
 var FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {

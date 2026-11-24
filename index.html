@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 版本：PWA外殼_20261124_2154（SMERIA 庫存 App 外殼：全螢幕嵌入 GAS 庫存頁、SMERIA 圖示與載入畫面、代存「記住登入」憑證；搭配 庫存APP_Code_20261124_2154.gs、庫存APP_Index_20261124_2154.html） -->
+<!-- 版本：PWA外殼_20261124_2234（2234：代存憑證時一併記住介面語言；2154：SMERIA 庫存 App 外殼：全螢幕嵌入 GAS 庫存頁、SMERIA 圖示與載入畫面、代存「記住登入」憑證；搭配 庫存APP_Code_20261124_2154.gs、庫存APP_Index_20261124_2234.html） -->
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
@@ -86,7 +86,8 @@
         try { c = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (x) {}
         e.source.postMessage({ smeria: 'cred', cred: c }, e.origin);
       } else if (d.smeria === 'save' && d.cred && /^tok:[0-9a-f]{64}$/.test(d.cred.tok || '')) {
-        localStorage.setItem(KEY, JSON.stringify({ tok: d.cred.tok, who: String(d.cred.who || '').slice(0, 20) }));
+        localStorage.setItem(KEY, JSON.stringify({ tok: d.cred.tok, who: String(d.cred.who || '').slice(0, 20),
+          lang: /^(tw|cn|en)$/.test(d.cred.lang || '') ? d.cred.lang : '' }));
       } else if (d.smeria === 'clear') {
         localStorage.removeItem(KEY);
       }
