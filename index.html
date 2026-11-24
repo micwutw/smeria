@@ -1,0 +1,101 @@
+<!doctype html>
+<!-- 版本：PWA外殼_20261124_2154（SMERIA 庫存 App 外殼：全螢幕嵌入 GAS 庫存頁、SMERIA 圖示與載入畫面、代存「記住登入」憑證；搭配 庫存APP_Code_20261124_2154.gs、庫存APP_Index_20261124_2154.html） -->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SMERIA 庫存</title>
+<meta name="theme-color" content="#FBF6F1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<!-- iPhone：加入主畫面後全螢幕開啟、用這個圖示與名稱 -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SMERIA 庫存">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+  :root { --bg:#FBF6F1; --ink:#1F2A22; --muted:#7A7168; --brand:#A85E50; }
+  html, body { margin:0; height:100%; background:var(--bg); font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif; color:var(--ink); }
+  /* 狀態列下方留安全區，iframe 佔滿其餘空間 */
+  body { padding-top:env(safe-area-inset-top,0px); box-sizing:border-box; }
+  #app { display:block; width:100%; height:100%; border:0; }
+  #splash { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; text-align:center; transition:opacity .3s; }
+  #splash.hide { opacity:0; pointer-events:none; }
+  .wm b { display:block; font:600 34px/1 Georgia,"Times New Roman",serif; letter-spacing:4px; }
+  .wm i { display:flex; align-items:center; justify-content:center; gap:8px; font-style:normal; font-size:12px; letter-spacing:5px; color:var(--muted); margin-top:8px; }
+  .wm i::before, .wm i::after { content:""; width:28px; border-top:1px solid var(--muted); }
+  #msg { color:var(--muted); font-size:14px; min-height:1.4em; margin-top:14px; }
+  #retry { display:none; border:0; background:var(--brand); color:#fff; font-size:16px; padding:10px 22px; border-radius:10px; }
+</style>
+</head>
+<body>
+<iframe id="app" title="SMERIA 庫存" referrerpolicy="no-referrer"></iframe>
+<div id="splash" role="status">
+  <svg width="120" height="86" viewBox="0 0 64 46" aria-hidden="true">
+    <ellipse cx="19" cy="23" rx="17" ry="15" fill="#F1D6C8"/>
+    <ellipse cx="32" cy="20" rx="14" ry="13" fill="#D89B8F" opacity=".85"/>
+    <circle cx="41" cy="17" r="10" fill="#EADCCB" opacity=".75"/>
+    <circle cx="46" cy="30" r="11" fill="#9BB08F" opacity=".9"/>
+  </svg>
+  <div class="wm"><b>SMERIA</b><i>SELECT</i></div>
+  <div id="msg">載入中…</div>
+  <button id="retry" type="button">重新載入</button>
+</div>
+<script>
+  // GAS 部署網址；重新部署成新網址時只要改這一行
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbybsrf84rBR0W78IQzbS5IkskGzVTYZ7UvJrqTAvUJksgPKO-QeCYwxkK9vsdJ3A_S3BQ/exec';
+
+  var frame = document.getElementById('app');
+  var splash = document.getElementById('splash');
+  var msg = document.getElementById('msg');
+  var retry = document.getElementById('retry');
+  var timer;
+
+  function load() {
+    retry.style.display = 'none';
+    splash.classList.remove('hide');
+    if (!navigator.onLine) { fail('目前沒有網路，請連上網路後再試。'); return; }
+    msg.textContent = '載入中…';
+    // Google Apps Script 第一次開啟常要 3–8 秒，超過 20 秒才當成失敗
+    clearTimeout(timer);
+    timer = setTimeout(function () { fail('連線較慢或無法連到 Google，請稍後再試。'); }, 20000);
+    frame.src = GAS_URL + '?t=' + Date.now();
+  }
+  function fail(t) { clearTimeout(timer); msg.textContent = t; retry.style.display = 'inline-block'; }
+
+  frame.addEventListener('load', function () {
+    if (!frame.src) return;
+    clearTimeout(timer);
+    splash.classList.add('hide');
+  });
+  retry.addEventListener('click', load);
+  window.addEventListener('online', function () { if (!splash.classList.contains('hide')) load(); });
+
+  // ---------- 記住登入 ----------
+  // 庫存頁在 Google 的網域裡，iPhone 對嵌入頁面的儲存常會清掉；改由外殼（主畫面 App 本身的網站）代存。
+  // 只回應來自 Google Apps Script 頁面（googleusercontent.com）的要求；存的是隨機憑證，不是通行碼
+  var KEY = 'smeria_cred';
+  function fromGas(o) { return /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(o); }
+  window.addEventListener('message', function (e) {
+    if (!fromGas(e.origin) || !e.data || !e.data.smeria) return;
+    var d = e.data;
+    try {
+      if (d.smeria === 'get') {
+        var c = null;
+        try { c = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (x) {}
+        e.source.postMessage({ smeria: 'cred', cred: c }, e.origin);
+      } else if (d.smeria === 'save' && d.cred && /^tok:[0-9a-f]{64}$/.test(d.cred.tok || '')) {
+        localStorage.setItem(KEY, JSON.stringify({ tok: d.cred.tok, who: String(d.cred.who || '').slice(0, 20) }));
+      } else if (d.smeria === 'clear') {
+        localStorage.removeItem(KEY);
+      }
+    } catch (x) {}
+  });
+
+  // 離線時也能開出外殼與提示，不是一片空白
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+  load();
+</script>
+</body>
+</html>
